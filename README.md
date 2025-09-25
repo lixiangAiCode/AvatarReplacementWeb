@@ -30,11 +30,13 @@
 - **Canvas交互**: Konva.js 9.2
 - **图标**: Element Plus Icons
 
-### 后端技术（规划中）
+### 后端技术
 - **框架**: FastAPI
 - **图像处理**: OpenCV
 - **异步支持**: Uvicorn
-- **文件存储**: 本地存储/云存储
+- **会话管理**: 基于UUID的会话系统
+- **文件存储**: 本地存储
+- **API路由**: 模块化路由设计
 
 ## 📁 项目结构
 
@@ -63,10 +65,20 @@
 │   ├── index.html                    # HTML模板
 │   ├── package.json                  # 前端依赖配置
 │   └── vite.config.js               # Vite构建配置
-├── backend/                  # FastAPI 后端（待开发）
+├── backend/                  # FastAPI 后端应用
 │   ├── app/
+│   │   ├── models.py                 # 数据模型
+│   │   ├── session_manager.py       # 会话管理
+│   │   └── routers/                  # API路由
+│   │       ├── session.py           # 会话相关API
+│   │       └── upload.py            # 文件上传API
 │   ├── modules/              # 图像处理模块
-│   └── requirements.txt
+│   │   ├── avatar_detector.py       # 头像检测算法
+│   │   ├── avatar_replacer.py       # 头像替换处理
+│   │   ├── right_side_filter.py     # 右侧消息过滤
+│   │   └── web_adapter.py           # Web适配器
+│   ├── main.py               # FastAPI应用入口
+│   └── requirements.txt      # 后端依赖
 └── docs/                     # 项目文档
     ├── api.md               # API接口文档
     ├── components.md        # 组件使用文档
@@ -77,8 +89,14 @@
 
 ### 环境要求
 
+**前端环境：**
 - Node.js >= 16.0.0
 - npm >= 8.0.0 或 yarn >= 1.22.0
+
+**后端环境：**
+- Python >= 3.8
+- pip >= 21.0
+- OpenCV 相关依赖
 
 ### 安装步骤
 
@@ -88,27 +106,46 @@
    cd AvatarReplacementWeb
    ```
 
-2. **安装前端依赖**
+2. **安装后端依赖**
    ```bash
-   cd frontend
+   cd backend
+   pip install -r requirements.txt
+   ```
+
+3. **启动后端服务**
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+4. **安装前端依赖**
+   ```bash
+   cd ../frontend
    npm install
    ```
 
-3. **启动开发服务器**
+5. **启动前端开发服务器**
    ```bash
    npm run dev
    ```
 
-4. **访问应用**
+6. **访问应用**
    ```
-   http://localhost:3000
+   前端: http://localhost:3000
+   后端API: http://localhost:8000
    ```
 
 ### 生产构建
 
+**前端构建：**
 ```bash
 cd frontend
 npm run build
+```
+
+**后端部署：**
+```bash
+cd backend
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 构建产物将生成在 `frontend/dist` 目录中。
@@ -215,18 +252,25 @@ Canvas头像区域选择，功能包括：
 - [x] 基础组件开发
 - [x] 状态管理实现
 - [x] UI界面设计
+- [x] 后端API开发
+- [x] 图像处理算法
+- [x] 前后端联调
+- [x] 会话管理系统
+- [x] 文件上传处理
+- [x] 头像检测与替换
 
-### 开发中 🚧
-- [ ] 后端API开发
-- [ ] 图像处理算法
-- [ ] 前后端联调
+### 优化中 🚧
+- [ ] 性能优化
+- [ ] 错误处理完善
+- [ ] 用户体验提升
 
 ### 计划中 📋
 - [ ] 批量处理功能
 - [ ] 模板保存/加载
 - [ ] 用户偏好设置
-- [ ] 性能优化
 - [ ] 多语言支持
+- [ ] Docker容器化部署
+- [ ] 云存储集成
 
 ## 🤝 贡献指南
 
