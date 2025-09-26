@@ -302,16 +302,34 @@ const handleResultImageLoad = () => {
 }
 
 const downloadResult = () => {
-  if (appStore.sessionId) {
-    // 使用下载URL进行文件下载
-    const downloadUrl = getDownloadUrl(appStore.sessionId)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = `chat_avatar_replaced_${Date.now()}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    ElMessage.success('开始下载结果图片')
+  if (appStore.resultImage) {
+    try {
+      // 使用base64数据进行下载
+      const byteCharacters = atob(appStore.resultImage)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: 'image/png' })
+      
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `chat_avatar_replaced_${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // 清理创建的URL对象
+      URL.revokeObjectURL(link.href)
+      
+      ElMessage.success('图片下载成功！')
+    } catch (error) {
+      console.error('下载失败:', error)
+      ElMessage.error('下载失败，请重试')
+    }
+  } else {
+    ElMessage.warning('没有可下载的图片')
   }
 }
 
