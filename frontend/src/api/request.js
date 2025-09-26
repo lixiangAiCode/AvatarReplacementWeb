@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://3.106.248.241:8000/api',
+  baseURL: 'https://convicted-camp-physiology-invention.trycloudflare.com/api',
   timeout: 30000
 })
 
