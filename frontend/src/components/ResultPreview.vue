@@ -1,7 +1,75 @@
 <template>
   <div class="result-preview">
-    <!-- 处理状态 -->
-    <div v-if="appStore.sessionStatus === 'processing'" class="processing-status">
+    <!-- 检测结果展示 -->
+    <div v-if="appStore.detectedAvatars && appStore.detectedAvatars.length > 0 && appStore.sessionStatus !== 'completed' && appStore.sessionStatus !== 'processing'" class="detected-avatars">
+      <!-- 检测结果标题 -->
+      <el-card class="detection-summary">
+        <div class="summary-content">
+          <el-icon class="summary-icon"><Search /></el-icon>
+          <div class="summary-text">
+            <h3 class="summary-title">检测完成</h3>
+            <p class="summary-message">
+              找到 {{ appStore.detectedAvatars.length }} 个相似头像，绿色框标注了检测位置
+            </p>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 检测结果预览图 -->
+      <el-card v-if="appStore.previewImage" class="preview-card">
+        <template #header>
+          <div class="card-header">
+            <el-icon><PictureRounded /></el-icon>
+            <span>检测结果预览</span>
+          </div>
+        </template>
+        
+        <div class="preview-container">
+          <div class="preview-image-wrapper">
+            <img 
+              :src="`data:image/png;base64,${appStore.previewImage}`"
+              alt="检测结果预览"
+              class="detection-preview-image"
+            />
+          </div>
+          <div class="preview-legend">
+            <div class="legend-item">
+              <div class="legend-box detection-box"></div>
+              <span>检测到的相似头像</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-number">1</div>
+              <span>头像编号</span>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 操作按钮 -->
+      <div class="action-section">
+        <el-button
+          type="primary"
+          size="large"
+          :loading="processing"
+          @click="confirmReplacement"
+          class="confirm-btn"
+        >
+          <el-icon><Check /></el-icon>
+          {{ processing ? '处理中...' : `确认替换 ${appStore.detectedAvatars.length} 个头像` }}
+        </el-button>
+        <el-button
+          size="large"
+          @click="goBackToTemplate"
+          :disabled="processing"
+        >
+          <el-icon><ArrowLeft /></el-icon>
+          重新选择模板
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 处理中状态 -->
+    <div v-else-if="appStore.sessionStatus === 'processing'" class="processing-status">
       <el-card class="status-card">
         <div class="status-content">
           <el-icon class="processing-icon"><Loading /></el-icon>
@@ -23,7 +91,7 @@
         <div class="success-header">
           <el-icon class="success-icon"><SuccessFilled /></el-icon>
           <div class="success-text">
-            <h3 class="success-title">处理完成！</h3>
+            <h3 class="success-title">替换完成！</h3>
             <p class="success-message">{{ appStore.message }}</p>
           </div>
         </div>
@@ -69,33 +137,6 @@
               </el-col>
             </el-row>
           </div>
-
-          <!-- 处理统计 -->
-          <div class="stats-section">
-            <el-row :gutter="20">
-              <el-col :span="8">
-                <el-statistic title="检测头像" :value="avatarCount" suffix="个">
-                  <template #prefix>
-                    <el-icon><Search /></el-icon>
-                  </template>
-                </el-statistic>
-              </el-col>
-              <el-col :span="8">
-                <el-statistic title="替换成功" :value="avatarCount" suffix="个">
-                  <template #prefix>
-                    <el-icon><Check /></el-icon>
-                  </template>
-                </el-statistic>
-              </el-col>
-              <el-col :span="8">
-                <el-statistic title="处理时间" :value="processingTime" suffix="秒">
-                  <template #prefix>
-                    <el-icon><Timer /></el-icon>
-                  </template>
-                </el-statistic>
-              </el-col>
-            </el-row>
-          </div>
         </div>
       </el-card>
 
@@ -117,13 +158,6 @@
         >
           全屏预览
         </el-button>
-        <el-button
-          size="large"
-          :icon="Share"
-          @click="shareResult"
-        >
-          分享结果
-        </el-button>
       </div>
     </div>
 
@@ -134,12 +168,20 @@
           <el-icon class="error-icon"><CircleCloseFilled /></el-icon>
           <h3 class="error-title">处理失败</h3>
           <p class="error-message">{{ appStore.message }}</p>
-          <el-button type="primary" @click="retryProcess">
+          <el-button type="primary" @click="goBackToTemplate">
             <el-icon><RefreshLeft /></el-icon>
-            重新处理
+            重新尝试
           </el-button>
         </div>
       </el-card>
+    </div>
+
+    <!-- 空状态 -->
+    <div v-else class="empty-state">
+      <el-empty
+        image="https://shadow.elemecdn.com/app/element/hamburger.9cf7b091-55e9-11e9-a976-7f4d0b07eef6.png"
+        description="请先完成前面的步骤"
+      />
     </div>
 
     <!-- 全屏预览对话框 -->
@@ -158,81 +200,113 @@
         />
       </div>
     </el-dialog>
-
-    <!-- 分享对话框 -->
-    <el-dialog
-      v-model="shareDialogVisible"
-      title="分享结果"
-      width="500px"
-      center
-    >
-      <div class="share-content">
-        <el-alert
-          title="分享提示"
-          type="info"
-          :closable="false"
-          show-icon
-        >
-          您可以右键保存图片，或使用下载按钮获取处理结果
-        </el-alert>
-        <div class="share-image">
-          <img
-            :src="resultImageUrl"
-            alt="分享结果"
-            class="share-preview"
-          />
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useAppStore } from '../stores/app'
-import { getDownloadUrl } from '../api/upload'
+import { startProcessing, getDownloadUrl } from '../api/upload'
 import {
+  Search,
+  PictureRounded,
+  Check,
+  ArrowLeft,
   Loading,
   SuccessFilled,
-  PictureRounded,
-  Search,
-  Check,
-  Timer,
   Download,
   View,
-  Share,
   CircleCloseFilled,
   RefreshLeft
 } from '@element-plus/icons-vue'
 
+const emit = defineEmits(['confirm-replace'])
 const appStore = useAppStore()
+
+// 处理状态
+const processing = ref(false)
 
 // 对话框状态
 const previewDialogVisible = ref(false)
-const shareDialogVisible = ref(false)
 
-// 处理结果数据
-const avatarCount = ref(0)
-const processingTime = ref(0)
 
-// 结果图片URL
 const resultImageUrl = computed(() => {
-  if (appStore.sessionId && appStore.sessionStatus === 'completed') {
-    return getDownloadUrl(appStore.sessionId)
+  if (appStore.sessionStatus === 'completed' && appStore.resultImage) {
+    // 使用base64图片数据
+    return `data:image/png;base64,${appStore.resultImage}`
   }
   return ''
 })
 
-// 处理结果图片加载
-const handleResultImageLoad = () => {
-  // 可以在这里添加图片加载完成的逻辑
+// 方法
+const confirmReplacement = async () => {
+  if (!appStore.detectedAvatars || appStore.detectedAvatars.length === 0) return
+
+  processing.value = true
+  // 设置处理状态
+  appStore.sessionStatus = 'processing'
+  appStore.progress = 0
+  appStore.message = '开始处理头像替换...'
+
+  try {
+    // 自动选择所有检测到的头像进行替换
+    const allAvatarIds = appStore.detectedAvatars.map(avatar => avatar.id)
+    
+    // 调用start接口并等待处理完成
+    const response = await startProcessing(appStore.sessionId, {
+      selected_avatars: allAvatarIds,
+      threshold: 0.8,
+      right_ratio: 0.6
+    })
+
+    // 处理返回的结果
+    const result = response.data || response
+    if (result.success && result.result_base64) {
+      // 直接设置处理结果
+      appStore.resultImage = result.result_base64
+      appStore.sessionStatus = 'completed'
+      appStore.progress = 100
+      appStore.message = result.message
+      
+      // 触发确认替换事件，通知父组件更新页面状态
+      emit('confirm-replace')
+      
+      ElMessage.success('头像替换完成！')
+    } else {
+      throw new Error(result.message || '处理失败')
+    }
+  } catch (error) {
+    appStore.sessionStatus = 'error'
+    appStore.message = '处理失败: ' + (error.response?.data?.detail || error.message)
+    
+    // 即使出错也要触发事件，让父组件知道处理完成了
+    emit('confirm-replace')
+    
+    ElMessage.error('头像替换失败: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    processing.value = false
+  }
 }
 
-// 下载结果
+const goBackToTemplate = () => {
+  // 触发回到模板选择步骤
+  appStore.detectedAvatars = []
+  appStore.previewImage = ''
+  appStore.sessionStatus = 'idle'
+  // 这里可以通过emit通知父组件或者直接操作步骤
+}
+
+const handleResultImageLoad = () => {
+  // 图片加载完成逻辑
+}
+
 const downloadResult = () => {
-  if (resultImageUrl.value) {
+  if (appStore.sessionId) {
+    // 使用下载URL进行文件下载
+    const downloadUrl = getDownloadUrl(appStore.sessionId)
     const link = document.createElement('a')
-    link.href = resultImageUrl.value
+    link.href = downloadUrl
     link.download = `chat_avatar_replaced_${Date.now()}.png`
     document.body.appendChild(link)
     link.click()
@@ -241,40 +315,130 @@ const downloadResult = () => {
   }
 }
 
-// 全屏预览
 const previewResult = () => {
   previewDialogVisible.value = true
 }
-
-// 分享结果
-const shareResult = () => {
-  shareDialogVisible.value = true
-}
-
-// 重新处理
-const retryProcess = () => {
-  // 触发重新处理逻辑
-  ElMessage.info('请返回参数调节步骤重新处理')
-}
-
-// 监听状态变化，更新统计信息
-onMounted(() => {
-  // 从store中获取处理结果信息
-  if (appStore.message) {
-    const match = appStore.message.match(/替换了(\d+)个头像/)
-    if (match) {
-      avatarCount.value = parseInt(match[1])
-    }
-  }
-
-  // 计算处理时间（示例）
-  processingTime.value = Math.round(Math.random() * 10 + 2)
-})
 </script>
 
 <style scoped>
 .result-preview {
   padding: 20px;
+}
+
+/* 检测结果样式 */
+.detection-summary {
+  margin-bottom: 20px;
+  border: none;
+  background: linear-gradient(135deg, #409eff 0%, #53a7ff 100%);
+  color: white;
+}
+
+.summary-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.summary-icon {
+  font-size: 32px;
+}
+
+.summary-title {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.summary-message {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* 预览图片 */
+.preview-card {
+  margin-bottom: 20px;
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.preview-container {
+  text-align: center;
+}
+
+.preview-image-wrapper {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: inline-block;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.detection-preview-image {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  display: block;
+}
+
+.preview-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.legend-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.detection-box {
+  background: #00ff00;
+  border: 2px solid #00cc00;
+}
+
+.legend-number {
+  width: 20px;
+  height: 20px;
+  background: #00ff00;
+  color: white;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 操作按钮 */
+.action-section {
+  text-align: center;
+}
+
+.confirm-btn {
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: 16px;
 }
 
 /* 处理中状态 */
@@ -360,14 +524,6 @@ onMounted(() => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .comparison-section {
   margin-bottom: 30px;
 }
@@ -395,17 +551,6 @@ onMounted(() => {
   display: block;
 }
 
-.stats-section {
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-:deep(.el-statistic) {
-  text-align: center;
-}
-
-/* 操作按钮 */
 .action-buttons {
   display: flex;
   justify-content: center;
@@ -460,25 +605,13 @@ onMounted(() => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-/* 分享对话框 */
-.share-content {
-  text-align: center;
-}
-
-.share-image {
-  margin-top: 20px;
-}
-
-.share-preview {
-  max-width: 100%;
-  max-height: 300px;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
 /* 响应式 */
 @media (max-width: 768px) {
+  .avatars-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
   .action-buttons {
     flex-direction: column;
     align-items: center;

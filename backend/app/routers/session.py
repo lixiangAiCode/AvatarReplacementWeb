@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException
 from app.session_manager import session_manager
 from app.models import SessionCreateResponse, SessionStatus
 
-router = APIRouter(prefix="/api/session", tags=["session"])
+router = APIRouter(prefix="/api", tags=["session"])
 
-@router.post("/create", response_model=SessionCreateResponse)
+@router.post("/session/create", response_model=SessionCreateResponse)
 async def create_session():
     """创建新的处理会话"""
     try:
@@ -16,7 +16,7 @@ async def create_session():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"创建会话失败: {str(e)}")
 
-@router.get("/{session_id}/status", response_model=SessionStatus)
+@router.get("/session/{session_id}/status", response_model=SessionStatus)
 async def get_session_status(session_id: str):
     """获取会话状态"""
     session = session_manager.get_session(session_id)
@@ -29,10 +29,11 @@ async def get_session_status(session_id: str):
         progress=session.get('progress', 0),
         message=session.get('message', ''),
         created_at=session['created_at'].isoformat(),
-        updated_at=session['updated_at'].isoformat()
+        updated_at=session['updated_at'].isoformat(),
+        result_base64=session.get('result_base64')
     )
 
-@router.delete("/{session_id}")
+@router.delete("/session/{session_id}")
 async def delete_session(session_id: str):
     """删除会话"""
     session = session_manager.get_session(session_id)

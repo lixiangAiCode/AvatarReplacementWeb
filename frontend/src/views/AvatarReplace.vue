@@ -2,11 +2,10 @@
   <div class="avatar-replace">
     <!-- 步骤导航 -->
     <el-card class="step-card">
-      <el-steps :active="currentStep" finish-status="success" align-center>
+      <el-steps :active="getCurrentStepIndex()" finish-status="success" align-center>
         <el-step title="上传图片" icon="Upload" />
         <el-step title="选择模板" icon="Crop" />
-        <el-step title="参数调节" icon="Setting" />
-        <el-step title="处理结果" icon="SuccessFilled" />
+        <el-step :title="getStepTitle()" icon="SuccessFilled" />
       </el-steps>
     </el-card>
 
@@ -35,29 +34,19 @@
           v-if="appStore.chatImage"
           :chat-image="appStore.chatImage"
           @template-selected="handleTemplateSelected"
+          @processing-complete="handleProcessingComplete"
         />
       </el-card>
 
-      <!-- 步骤3: 参数调节 -->
+      <!-- 步骤3: 确认替换 -->
       <el-card v-show="currentStep === 2" class="content-card">
         <template #header>
           <div class="card-header">
-            <el-icon><Setting /></el-icon>
-            <span>参数调节</span>
-          </div>
-        </template>
-        <ParameterPanel @start-process="handleStartProcess" />
-      </el-card>
-
-      <!-- 步骤4: 处理结果 -->
-      <el-card v-show="currentStep === 3" class="content-card">
-        <template #header>
-          <div class="card-header">
             <el-icon><SuccessFilled /></el-icon>
-            <span>处理结果</span>
+            <span>{{ getStepTitle() }}</span>
           </div>
         </template>
-        <ResultPreview />
+        <ResultPreview @confirm-replace="handleConfirmReplace" />
       </el-card>
     </div>
 
@@ -72,7 +61,7 @@
       </el-button>
 
       <el-button
-        v-if="currentStep < 3 && canNextStep"
+        v-if="currentStep < 2 && canNextStep"
         type="primary"
         @click="nextStep"
         :icon="ArrowRight"
@@ -81,12 +70,21 @@
       </el-button>
 
       <el-button
-        v-if="currentStep === 3"
+        v-if="currentStep === 2 && appStore.sessionStatus !== 'completed'"
         type="success"
         @click="resetProcess"
         :icon="RefreshLeft"
       >
         重新开始
+      </el-button>
+      
+      <el-button
+        v-if="appStore.sessionStatus === 'completed'"
+        type="primary"
+        @click="resetProcess"
+        :icon="RefreshLeft"
+      >
+        处理新图片
       </el-button>
     </div>
 
@@ -108,6 +106,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useAppStore } from '../stores/app'
 import {
   Upload,
@@ -122,7 +121,6 @@ import {
 // 引入组件
 import ImageUpload from '../components/ImageUpload.vue'
 import TemplateSelector from '../components/TemplateSelector.vue'
-import ParameterPanel from '../components/ParameterPanel.vue'
 import ResultPreview from '../components/ResultPreview.vue'
 
 const appStore = useAppStore()
@@ -134,9 +132,7 @@ const canNextStep = computed(() => {
     case 0:
       return appStore.chatImage && appStore.newAvatar
     case 1:
-      return appStore.templateBbox
-    case 2:
-      return appStore.sessionStatus === 'completed'
+      return appStore.detectedAvatars && appStore.detectedAvatars.length > 0
     default:
       return false
   }
@@ -149,24 +145,55 @@ const handleImageUploaded = () => {
 
 // 处理模板选择完成
 const handleTemplateSelected = () => {
-  ElMessage.success('模板选择成功')
+  ElMessage.success('模板选择成功，正在检测相似头像...')
 }
 
-// 处理开始处理
-const handleStartProcess = async () => {
-  currentStep.value = 3
-  // 开始轮询状态更新
-  const timer = setInterval(async () => {
-    await appStore.updateStatus()
-    if (appStore.sessionStatus === 'completed' || appStore.sessionStatus === 'error') {
-      clearInterval(timer)
-    }
-  }, 1000)
+// 处理检测完成
+const handleProcessingComplete = (detectedAvatars) => {
+  appStore.detectedAvatars = detectedAvatars
+  currentStep.value = 2
+  ElMessage.success(`检测完成，找到 ${detectedAvatars.length} 个相似头像`)
+}
+
+// 处理确认替换
+const handleConfirmReplace = async () => {
+  // ResultPreview组件会处理替换逻辑并更新store状态
+  // 当替换完成或失败时，确保页面保持在步骤3显示结果
+  
+  // 确保当前步骤为第3步（显示结果页面）
+  currentStep.value = 2
+  
+  // 如果处理完成，页面会自动显示替换后的图片
+  // 如果处理失败，页面会显示错误信息
+}
+
+// 获取步骤标题
+const getStepTitle = () => {
+  if (appStore.sessionStatus === 'completed') {
+    return '处理完成'
+  } else if (appStore.sessionStatus === 'processing') {
+    return '正在处理'
+  } else if (appStore.sessionStatus === 'error') {
+    return '处理失败'
+  } else {
+    return '确认替换'
+  }
+}
+
+// 获取当前步骤索引（用于步骤导航显示）
+const getCurrentStepIndex = () => {
+  if (appStore.sessionStatus === 'completed') {
+    return 3 // 显示为已完成的最后一步
+  } else if (appStore.sessionStatus === 'processing') {
+    return 2 // 显示为正在进行的第三步
+  } else {
+    return currentStep.value
+  }
 }
 
 // 下一步
 const nextStep = () => {
-  if (canNextStep.value && currentStep.value < 3) {
+  if (canNextStep.value && currentStep.value < 2) {
     currentStep.value++
   }
 }

@@ -16,17 +16,28 @@ export const useAppStore = defineStore('app', () => {
   // 模板区域
   const templateBbox = ref(null)
 
+  // 检测到的相似头像
+  const detectedAvatars = ref([])
+
+  // 预览图片（带检测框标注）
+  const previewImage = ref('')
+
   // 处理结果
   const result = ref(null)
   const resultUrl = ref(null)
+  const resultImage = ref('')
 
   // 创建新会话
   const initSession = async () => {
     try {
       const response = await createSession()
-      sessionId.value = response.session_id
+      
+      // 确保正确提取响应数据
+      const data = response.data || response
+      sessionId.value = data.session_id
       sessionStatus.value = 'created'
       message.value = '会话创建成功'
+      
       return true
     } catch (error) {
       console.error('创建会话失败:', error)
@@ -39,10 +50,18 @@ export const useAppStore = defineStore('app', () => {
     if (!sessionId.value) return
 
     try {
-      const status = await getSessionStatus(sessionId.value)
+      const response = await getSessionStatus(sessionId.value)
+      
+      // 确保正确提取响应数据
+      const status = response.data || response
       sessionStatus.value = status.status
       progress.value = status.progress
       message.value = status.message
+      
+      // 如果有结果图片，保存到状态
+      if (status.result_base64) {
+        resultImage.value = status.result_base64
+      }
     } catch (error) {
       console.error('获取状态失败:', error)
     }
@@ -57,8 +76,11 @@ export const useAppStore = defineStore('app', () => {
     chatImage.value = null
     newAvatar.value = null
     templateBbox.value = null
+    detectedAvatars.value = []
+    previewImage.value = ''
     result.value = null
     resultUrl.value = null
+    resultImage.value = ''
   }
 
   return {
@@ -70,8 +92,11 @@ export const useAppStore = defineStore('app', () => {
     chatImage,
     newAvatar,
     templateBbox,
+    detectedAvatars,
+    previewImage,
     result,
     resultUrl,
+    resultImage,
 
     // 方法
     initSession,

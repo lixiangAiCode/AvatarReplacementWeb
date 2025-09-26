@@ -42,9 +42,10 @@
           type="primary"
           @click="confirmSelection"
           :disabled="!selection.isSelected"
+          :loading="processing"
         >
           <el-icon><Check /></el-icon>
-          确认模板
+          {{ processing ? '检测中...' : '确认模板' }}
         </el-button>
       </div>
     </div>
@@ -67,6 +68,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useAppStore } from '../stores/app'
 import { setTemplate } from '../api/upload'
 import {
@@ -84,8 +86,11 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['template-selected'])
+const emit = defineEmits(['template-selected', 'processing-complete'])
 const appStore = useAppStore()
+
+// 处理状态
+const processing = ref(false)
 
 // DOM引用
 const canvas = ref(null)
@@ -327,7 +332,9 @@ const clearSelection = () => {
 
 // 确认选择
 const confirmSelection = async () => {
-  if (!selection.isSelected) return
+  if (!selection.isSelected || processing.value) return
+
+  processing.value = true
 
   // 将Canvas坐标转换为原图坐标
   const realX = Math.round((selection.startX - image.offsetX) / image.scale)
@@ -344,12 +351,28 @@ const confirmSelection = async () => {
   }
 
   try {
-    await setTemplate(appStore.sessionId, bbox)
+    console.log(appStore.sessionId)
+    // 设置模板区域并进行检测（后端会自动进行检测）
+    const response = await setTemplate(appStore.sessionId, bbox)
+    console.log(response)
     appStore.templateBbox = bbox
     emit('template-selected')
-    ElMessage.success('模板区域设置成功')
+    // 处理检测结果
+    if (response.avatar_count > 0) {
+      // 将检测结果和预览图保存到store
+      appStore.detectedAvatars = response.detected_avatars
+      appStore.previewImage = response.preview_image
+      
+      ElMessage.success(`检测完成！找到 ${response.detected_avatars.length} 个相似头像`)
+      emit('processing-complete', response.detected_avatars)
+    } else {
+      ElMessage.warning('未检测到相似头像，请重新选择模板')
+    }
+
   } catch (error) {
-    ElMessage.error('模板设置失败')
+    ElMessage.error('检测失败: ' + (error.response?.detail || error.message))
+  } finally {
+    processing.value = false
   }
 }
 

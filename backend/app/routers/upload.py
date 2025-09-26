@@ -83,17 +83,17 @@ async def upload_new_avatar(session_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
 
 @router.post("/{session_id}/template/set")
-async def set_template(session_id: str, bbox: TemplateBbox):
-    """设置头像模板区域"""
+async def set_template_and_detect(session_id: str, bbox: TemplateBbox):
+    """设置头像模板区域并检测相似头像"""
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在")
 
-    if not session.get('chat_image_path'):
-        raise HTTPException(status_code=400, detail="请先上传聊天截图")
+    if not all([session.get('chat_image_path'), session.get('avatar_path')]):
+        raise HTTPException(status_code=400, detail="请先上传聊天截图和新头像")
 
     try:
-        # 保存模板区域信息
+        # 1. 保存模板区域信息
         template_bbox = (bbox.x, bbox.y, bbox.width, bbox.height)
         session_manager.update_session(
             session_id,
@@ -102,10 +102,49 @@ async def set_template(session_id: str, bbox: TemplateBbox):
             message='模板区域设置成功'
         )
 
-        return {"message": "模板区域设置成功"}
+        # 2. 读取图片文件
+        async with aiofiles.open(session['chat_image_path'], 'rb') as f:
+            chat_image_bytes = await f.read()
+
+        # 3. 创建处理器进行检测
+        processor = WebChatAvatarReplacer(session_id)
+        
+        # 设置进度回调
+        async def progress_callback(progress: int, message: str):
+            session_manager.set_progress(session_id, progress, message)
+
+        processor.set_progress_callback(progress_callback)
+
+        # 4. 使用默认配置检测相似头像
+        detected_avatars, preview_base64 = await processor.detect_similar_avatars(
+            chat_image_bytes=chat_image_bytes,
+            bbox=template_bbox,
+            threshold=0.8,  # 默认阈值
+            right_ratio=0.6  # 默认右侧筛选比例
+        )
+
+        # 5. 更新会话状态
+        session_manager.update_session(
+            session_id,
+            detected_avatars=detected_avatars,
+            status='avatars_detected',
+            message=f'检测完成，找到 {len(detected_avatars)} 个相似头像'
+        )
+
+        return {
+            "message": f"检测完成，找到 {len(detected_avatars)} 个相似头像",
+            "detected_avatars": detected_avatars,
+            "avatar_count": len(detected_avatars),
+            "preview_image": preview_base64
+        }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"设置模板失败: {str(e)}")
+        session_manager.update_session(
+            session_id,
+            status='error',
+            message=f'检测失败: {str(e)}'
+        )
+        raise HTTPException(status_code=500, detail=f"检测失败: {str(e)}")
 
 @router.post("/{session_id}/process/start")
 async def start_processing(session_id: str, config: ProcessConfig):
@@ -152,11 +191,16 @@ async def start_processing(session_id: str, config: ProcessConfig):
         async with aiofiles.open(result_path, 'wb') as f:
             await f.write(result_bytes)
 
+        # 生成base64图片数据用于前端显示
+        import base64
+        result_base64 = base64.b64encode(result_bytes).decode('utf-8')
+
         # 更新会话状态
         session_manager.update_session(
             session_id,
             status='completed',
             result_path=result_path,
+            result_base64=result_base64,
             progress=100,
             message=f'处理完成，替换了{avatar_count}个头像'
         )
@@ -165,7 +209,8 @@ async def start_processing(session_id: str, config: ProcessConfig):
             success=True,
             message=f'处理完成，替换了{avatar_count}个头像',
             avatar_count=avatar_count,
-            result_url=f'/api/{session_id}/result/download'
+            result_url=f'/api/{session_id}/result/download',
+            result_base64=result_base64
         )
 
     except Exception as e:

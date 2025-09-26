@@ -29,9 +29,13 @@ export const setTemplate = (sessionId, bbox) => {
   return api.post(`/${sessionId}/template/set`, bbox)
 }
 
-// 开始处理
-export const startProcessing = (sessionId, config) => {
-  return api.post(`/${sessionId}/process/start`, config)
+// 开始处理（最终替换）
+export const startProcessing = (sessionId, config = {}) => {
+  return api.post(`/${sessionId}/process/start`, {
+    selected_avatars: config.selected_avatars || [],
+    threshold: config.threshold || 0.8,
+    right_ratio: config.right_ratio || 0.6
+  })
 }
 
 // 获取结果下载链接
