@@ -122,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useAppStore } from '../stores/app'
 import { uploadChatImage as apiUploadChatImage, uploadAvatar as apiUploadAvatar } from '../api/upload'
 import {
@@ -236,6 +236,25 @@ const removeAvatar = () => {
   avatarUploaded.value = false
   appStore.newAvatar = null
 }
+
+// 监听store重置，清除组件本地状态
+watch(() => appStore.chatImage, (newVal) => {
+  if (newVal === null) {
+    // store被重置，清除聊天截图相关状态
+    chatImageFile.value = null
+    chatImagePreview.value = ''
+    chatImageUploaded.value = false
+  }
+})
+
+watch(() => appStore.newAvatar, (newVal) => {
+  if (newVal === null) {
+    // store被重置，清除头像相关状态
+    avatarFile.value = null
+    avatarPreview.value = ''
+    avatarUploaded.value = false
+  }
+})
 </script>
 
 <style scoped>
