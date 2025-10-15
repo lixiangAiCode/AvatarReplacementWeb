@@ -20,7 +20,8 @@
       <!-- 底部信息 -->
       <el-footer class="app-footer">
         <div class="footer-content">
-          <span>© 2024 聊天头像替换工具 | Web版本</span>
+          <span>© 2025 Avatar Replacement Online | </span>
+          <router-link to="/privacy-policy" class="privacy-link">Privacy Policy</router-link>
         </div>
       </el-footer>
     </el-container>
@@ -85,6 +86,18 @@ import { Avatar } from '@element-plus/icons-vue'
 .footer-content {
   font-size: 12px;
   opacity: 0.7;
+}
+
+.privacy-link {
+  color: white;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.privacy-link:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 /* 全局样式 */

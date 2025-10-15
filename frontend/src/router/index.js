@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AvatarReplace from '../views/AvatarReplace.vue'
+import PrivacyPolicy from '../views/PrivacyPolicy.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -8,6 +9,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: AvatarReplace
+    },
+    {
+      path: '/privacy-policy',
+      name: 'privacy-policy',
+      component: PrivacyPolicy
     }
   ]
 })
