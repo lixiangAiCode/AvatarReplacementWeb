@@ -1,12 +1,12 @@
 <template>
   <div class="template-selector">
     <div class="selector-header">
-      <h4>请在聊天截图中框选一个头像作为模板</h4>
+      <h4>{{ $t('template.instruction') }}</h4>
       <div class="controls">
         <el-button-group>
-          <el-button :icon="ZoomIn" @click="zoomIn" size="small">放大</el-button>
-          <el-button :icon="ZoomOut" @click="zoomOut" size="small">缩小</el-button>
-          <el-button :icon="RefreshLeft" @click="resetView" size="small">重置</el-button>
+          <el-button :icon="ZoomIn" @click="zoomIn" size="small">{{ $t('common.zoomIn') || 'Zoom In' }}</el-button>
+          <el-button :icon="ZoomOut" @click="zoomOut" size="small">{{ $t('common.zoomOut') || 'Zoom Out' }}</el-button>
+          <el-button :icon="RefreshLeft" @click="resetView" size="small">{{ $t('common.reset') }}</el-button>
         </el-button-group>
       </div>
     </div>
@@ -31,12 +31,13 @@
 
     <div class="selector-footer">
       <div v-if="selection.isSelected" class="selection-info">
-        <span>选中区域: {{ selection.width }} × {{ selection.height }} px</span>
+        <span v-if="$i18n.locale === 'en'">Selected Area: {{ selection.width }} × {{ selection.height }} px</span>
+        <span v-else>选中区域: {{ selection.width }} × {{ selection.height }} px</span>
       </div>
       <div class="footer-buttons">
         <el-button @click="clearSelection" :disabled="!selection.isSelected">
           <el-icon><Delete /></el-icon>
-          清除选择
+          {{ $t('template.clearSelection') }}
         </el-button>
         <el-button
           type="primary"
@@ -45,7 +46,7 @@
           :loading="processing"
         >
           <el-icon><Check /></el-icon>
-          {{ processing ? '检测中...' : '确认模板' }}
+          {{ processing ? $t('process.detecting') : $t('template.confirmSelection') }}
         </el-button>
       </div>
     </div>
@@ -53,9 +54,15 @@
     <div class="usage-tips">
       <el-alert type="info" :closable="false">
         <template #title>
-          <div class="tips-title">操作说明</div>
+          <div class="tips-title">{{ $t('template.title') }}</div>
         </template>
-        <ul class="tips-list">
+        <ul class="tips-list" v-if="$i18n.locale === 'en'">
+          <li><strong>Select Template:</strong> Left-click and drag to select avatar area</li>
+          <li><strong>Zoom Image:</strong> Mouse wheel or use zoom buttons</li>
+          <li><strong>Move Image:</strong> Right-click and drag to move image position</li>
+          <li><strong>Suggestion:</strong> Choose clear and complete avatars, avoid too much background</li>
+        </ul>
+        <ul class="tips-list" v-else>
           <li><strong>框选模板：</strong> 鼠标左键拖拽框选头像区域</li>
           <li><strong>缩放图片：</strong> 滚轮上下滚动或使用缩放按钮</li>
           <li><strong>移动图片：</strong> 右键拖拽移动图片位置</li>
@@ -69,6 +76,7 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '../stores/app'
 import { setTemplate } from '../api/upload'
 import {
@@ -79,6 +87,7 @@ import {
   Check
 } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const props = defineProps({
   chatImage: {
     type: String,
@@ -363,14 +372,14 @@ const confirmSelection = async () => {
       appStore.detectedAvatars = response.detected_avatars
       appStore.previewImage = response.preview_image
       
-      ElMessage.success(`检测完成！找到 ${response.detected_avatars.length} 个相似头像`)
+      ElMessage.success(t('process.avatarsFound', { count: response.detected_avatars.length }))
       emit('processing-complete', response.detected_avatars)
     } else {
-      ElMessage.warning('未检测到相似头像，请重新选择模板')
+      ElMessage.warning(t('errors.noTemplateSelected'))
     }
 
   } catch (error) {
-    ElMessage.error('检测失败: ' + (error.response?.detail || error.message))
+    ElMessage.error(t('errors.processingFailed'))
   } finally {
     processing.value = false
   }

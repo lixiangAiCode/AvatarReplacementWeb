@@ -3,8 +3,8 @@
     <!-- 步骤导航 -->
     <el-card class="step-card">
       <el-steps :active="getCurrentStepIndex()" finish-status="success" align-center>
-        <el-step title="上传图片" icon="Upload" />
-        <el-step title="选择模板" icon="Crop" />
+        <el-step :title="$t('steps.step1')" icon="Upload" />
+        <el-step :title="$t('steps.step2')" icon="Crop" />
         <el-step :title="getStepTitle()" icon="SuccessFilled" />
       </el-steps>
     </el-card>
@@ -16,7 +16,7 @@
         <template #header>
           <div class="card-header">
             <el-icon><Upload /></el-icon>
-            <span>上传图片</span>
+            <span>{{ $t('steps.uploadImages') }}</span>
           </div>
         </template>
         <ImageUpload @uploaded="handleImageUploaded" />
@@ -27,7 +27,7 @@
         <template #header>
           <div class="card-header">
             <el-icon><Crop /></el-icon>
-            <span>选择头像模板</span>
+            <span>{{ $t('steps.selectTemplate') }}</span>
           </div>
         </template>
         <TemplateSelector
@@ -57,7 +57,7 @@
         @click="prevStep"
         :icon="ArrowLeft"
       >
-        上一步
+        {{ $t('common.previous') }}
       </el-button>
 
       <el-button
@@ -66,7 +66,7 @@
         @click="nextStep"
         :icon="ArrowRight"
       >
-        下一步
+        {{ $t('common.next') }}
       </el-button>
 
       <el-button
@@ -75,7 +75,7 @@
         @click="resetProcess"
         :icon="RefreshLeft"
       >
-        重新开始
+        {{ $t('common.reset') }}
       </el-button>
       
       <el-button
@@ -84,7 +84,7 @@
         @click="resetProcess"
         :icon="RefreshLeft"
       >
-        处理新图片
+        {{ $t('results.newProcessing') }}
       </el-button>
     </div>
 
@@ -92,7 +92,7 @@
     <el-card v-if="appStore.sessionStatus !== 'idle'" class="status-card">
       <div class="status-content">
         <div class="status-text">
-          <span>{{ appStore.message }}</span>
+          <span>{{ getStatusMessage() }}</span>
         </div>
         <el-progress
           v-if="appStore.progress > 0"
@@ -107,6 +107,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '../stores/app'
 import {
   Upload,
@@ -123,6 +124,7 @@ import ImageUpload from '../components/ImageUpload.vue'
 import TemplateSelector from '../components/TemplateSelector.vue'
 import ResultPreview from '../components/ResultPreview.vue'
 
+const { t } = useI18n()
 const appStore = useAppStore()
 const currentStep = ref(0)
 
@@ -140,19 +142,19 @@ const canNextStep = computed(() => {
 
 // 处理图片上传完成
 const handleImageUploaded = () => {
-  ElMessage.success('图片上传成功')
+  ElMessage.success(t('upload.uploadSuccess'))
 }
 
 // 处理模板选择完成
 const handleTemplateSelected = () => {
-  ElMessage.success('模板选择成功，正在检测相似头像...')
+  ElMessage.success(t('process.detecting'))
 }
 
 // 处理检测完成
 const handleProcessingComplete = (detectedAvatars) => {
   appStore.detectedAvatars = detectedAvatars
   currentStep.value = 2
-  ElMessage.success(`检测完成，找到 ${detectedAvatars.length} 个相似头像`)
+  ElMessage.success(t('process.avatarsFound', { count: detectedAvatars.length }))
 }
 
 // 处理确认替换
@@ -170,13 +172,32 @@ const handleConfirmReplace = async () => {
 // 获取步骤标题
 const getStepTitle = () => {
   if (appStore.sessionStatus === 'completed') {
-    return '处理完成'
+    return t('process.completed')
   } else if (appStore.sessionStatus === 'processing') {
-    return '正在处理'
+    return t('process.title')
   } else if (appStore.sessionStatus === 'error') {
-    return '处理失败'
+    return t('process.failed')
   } else {
-    return '确认替换'
+    return t('steps.processDownload')
+  }
+}
+
+// 获取状态消息
+const getStatusMessage = () => {
+  if (appStore.sessionStatus === 'processing') {
+    if (appStore.progress < 30) {
+      return t('process.detecting')
+    } else if (appStore.progress < 80) {
+      return t('process.replacing')
+    } else {
+      return t('process.finishing')
+    }
+  } else if (appStore.sessionStatus === 'completed') {
+    return t('process.completed')
+  } else if (appStore.sessionStatus === 'error') {
+    return t('errors.processingFailed')
+  } else {
+    return appStore.message || ''
   }
 }
 

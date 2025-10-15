@@ -6,7 +6,7 @@
         <div class="upload-section">
           <h3 class="section-title">
             <el-icon><ChatDotRound /></el-icon>
-            聊天记录截图
+            {{ $t('upload.chatImage') }}
           </h3>
           <el-upload
             ref="chatUploadRef"
@@ -18,8 +18,8 @@
           >
             <div v-if="!chatImagePreview" class="upload-placeholder">
               <el-icon class="upload-icon"><Plus /></el-icon>
-              <div class="upload-text">点击或拖拽上传聊天截图</div>
-              <div class="upload-hint">支持 PNG、JPG、JPEG、BMP 格式</div>
+              <div class="upload-text">{{ $t('upload.dragTip') }}</div>
+              <div class="upload-hint">{{ $t('upload.chatImageTip') }}</div>
             </div>
             <div v-else class="image-preview">
               <img :src="chatImagePreview" alt="聊天截图预览" />
@@ -42,11 +42,11 @@
             class="upload-btn"
           >
             <el-icon><Upload /></el-icon>
-            上传聊天截图
+            {{ $t('upload.chatImage') }}
           </el-button>
           <div v-if="chatImageUploaded" class="upload-success">
             <el-icon><SuccessFilled /></el-icon>
-            聊天截图上传成功
+            {{ $t('upload.uploadSuccess') }}
           </div>
         </div>
       </el-col>
@@ -56,7 +56,7 @@
         <div class="upload-section">
           <h3 class="section-title">
             <el-icon><Avatar /></el-icon>
-            新头像图片
+            {{ $t('upload.avatar') }}
           </h3>
           <el-upload
             ref="avatarUploadRef"
@@ -68,8 +68,8 @@
           >
             <div v-if="!avatarPreview" class="upload-placeholder">
               <el-icon class="upload-icon"><Plus /></el-icon>
-              <div class="upload-text">点击或拖拽上传新头像</div>
-              <div class="upload-hint">建议使用正方形图片</div>
+              <div class="upload-text">{{ $t('upload.dragTip') }}</div>
+              <div class="upload-hint">{{ $t('upload.avatarTip') }}</div>
             </div>
             <div v-else class="image-preview">
               <img :src="avatarPreview" alt="新头像预览" />
@@ -92,11 +92,11 @@
             class="upload-btn"
           >
             <el-icon><Upload /></el-icon>
-            上传新头像
+            {{ $t('upload.avatar') }}
           </el-button>
           <div v-if="avatarUploaded" class="upload-success">
             <el-icon><SuccessFilled /></el-icon>
-            新头像上传成功
+            {{ $t('upload.uploadSuccess') }}
           </div>
         </div>
       </el-col>
@@ -105,12 +105,18 @@
     <!-- 上传提示 -->
     <div class="upload-tips">
       <el-alert
-        title="上传提示"
+        :title="$t('upload.selectFile')"
         type="info"
         :closable="false"
         show-icon
       >
-        <ul>
+        <ul v-if="$i18n.locale === 'en'">
+          <li>Please upload the chat screenshot first, then upload the new avatar</li>
+          <li>Recommend clear and complete chat screenshots with obvious avatar boundaries</li>
+          <li>New avatar should preferably be square images, system will auto-adjust size</li>
+          <li>Supported formats: PNG, JPG, JPEG, BMP</li>
+        </ul>
+        <ul v-else>
           <li>请先上传聊天记录截图，然后上传要替换的新头像</li>
           <li>建议聊天截图清晰完整，头像边界明显</li>
           <li>新头像建议使用正方形图片，系统会自动调整尺寸</li>
@@ -123,6 +129,7 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '../stores/app'
 import { uploadChatImage as apiUploadChatImage, uploadAvatar as apiUploadAvatar } from '../api/upload'
 import {
@@ -134,6 +141,7 @@ import {
   SuccessFilled
 } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const emit = defineEmits(['uploaded'])
 const appStore = useAppStore()
 
@@ -188,9 +196,9 @@ const uploadChatImage = async () => {
     chatImageUploaded.value = true
     appStore.chatImage = chatImagePreview.value
     checkUploadComplete()
-    ElMessage.success('聊天截图上传成功')
+    ElMessage.success(t('upload.uploadSuccess'))
   } catch (error) {
-    ElMessage.error('聊天截图上传失败')
+    ElMessage.error(t('upload.uploadError'))
   } finally {
     uploading.chat = false
   }
@@ -206,9 +214,9 @@ const uploadAvatar = async () => {
     avatarUploaded.value = true
     appStore.newAvatar = avatarPreview.value
     checkUploadComplete()
-    ElMessage.success('新头像上传成功')
+    ElMessage.success(t('upload.uploadSuccess'))
   } catch (error) {
-    ElMessage.error('新头像上传失败')
+    ElMessage.error(t('upload.uploadError'))
   } finally {
     uploading.avatar = false
   }

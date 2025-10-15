@@ -7,9 +7,9 @@
         <div class="summary-content">
           <el-icon class="summary-icon"><Search /></el-icon>
           <div class="summary-text">
-            <h3 class="summary-title">检测完成</h3>
+            <h3 class="summary-title">{{ $t('process.completed') }}</h3>
             <p class="summary-message">
-              找到 {{ appStore.detectedAvatars.length }} 个相似头像，绿色框标注了检测位置
+              {{ $t('process.avatarsFound', { count: appStore.detectedAvatars.length }) }}
             </p>
           </div>
         </div>
@@ -20,7 +20,7 @@
         <template #header>
           <div class="card-header">
             <el-icon><PictureRounded /></el-icon>
-            <span>检测结果预览</span>
+            <span>{{ $t('results.original') }}</span>
           </div>
         </template>
         
@@ -28,18 +28,20 @@
           <div class="preview-image-wrapper">
             <img 
               :src="`data:image/png;base64,${appStore.previewImage}`"
-              alt="检测结果预览"
+              :alt="$t('results.original')"
               class="detection-preview-image"
             />
           </div>
           <div class="preview-legend">
             <div class="legend-item">
               <div class="legend-box detection-box"></div>
-              <span>检测到的相似头像</span>
+              <span v-if="$i18n.locale === 'en'">Detected Similar Avatars</span>
+              <span v-else>检测到的相似头像</span>
             </div>
             <div class="legend-item">
               <div class="legend-number">1</div>
-              <span>头像编号</span>
+              <span v-if="$i18n.locale === 'en'">Avatar Number</span>
+              <span v-else>头像编号</span>
             </div>
           </div>
         </div>
@@ -55,7 +57,7 @@
           class="confirm-btn"
         >
           <el-icon><Check /></el-icon>
-          {{ processing ? '处理中...' : `确认替换 ${appStore.detectedAvatars.length} 个头像` }}
+          {{ processing ? $t('process.title') : $t('process.startProcessing') }}
         </el-button>
         <el-button
           size="large"
@@ -63,7 +65,7 @@
           :disabled="processing"
         >
           <el-icon><ArrowLeft /></el-icon>
-          重新选择模板
+          {{ $t('template.title') }}
         </el-button>
       </div>
     </div>
@@ -73,7 +75,7 @@
       <el-card class="status-card">
         <div class="status-content">
           <el-icon class="processing-icon"><Loading /></el-icon>
-          <h3 class="status-title">正在处理中...</h3>
+          <h3 class="status-title">{{ $t('process.title') }}</h3>
           <p class="status-message">{{ appStore.message }}</p>
           <el-progress
             :percentage="appStore.progress"
@@ -91,8 +93,8 @@
         <div class="success-header">
           <el-icon class="success-icon"><SuccessFilled /></el-icon>
           <div class="success-text">
-            <h3 class="success-title">替换完成！</h3>
-            <p class="success-message">{{ appStore.message }}</p>
+            <h3 class="success-title">{{ $t('process.completed') }}!</h3>
+            <p class="success-message">{{ getCompletionMessage() }}</p>
           </div>
         </div>
       </el-card>
@@ -102,7 +104,7 @@
         <template #header>
           <div class="card-header">
             <el-icon><PictureRounded /></el-icon>
-            <span>处理结果</span>
+            <span>{{ $t('results.processed') }}</span>
           </div>
         </template>
 
@@ -112,11 +114,11 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <div class="image-container">
-                  <div class="image-title">原始截图</div>
+                  <div class="image-title">{{ $t('results.original') }}</div>
                   <div class="image-wrapper">
                     <img
                       :src="appStore.chatImage"
-                      alt="原始聊天截图"
+                      :alt="$t('results.original')"
                       class="preview-image"
                     />
                   </div>
@@ -124,11 +126,11 @@
               </el-col>
               <el-col :span="12">
                 <div class="image-container">
-                  <div class="image-title">处理结果</div>
+                  <div class="image-title">{{ $t('results.processed') }}</div>
                   <div class="image-wrapper">
                     <img
                       :src="resultImageUrl"
-                      alt="头像替换结果"
+                      :alt="$t('results.processed')"
                       class="preview-image"
                       @load="handleResultImageLoad"
                     />
@@ -149,14 +151,14 @@
           @click="downloadResult"
           class="download-btn"
         >
-          下载结果图片
+          {{ $t('results.downloadProcessed') }}
         </el-button>
         <el-button
           size="large"
           :icon="View"
           @click="previewResult"
         >
-          全屏预览
+          {{ $t('results.view') }}
         </el-button>
       </div>
     </div>
@@ -166,11 +168,11 @@
       <el-card class="error-card">
         <div class="error-content-inner">
           <el-icon class="error-icon"><CircleCloseFilled /></el-icon>
-          <h3 class="error-title">处理失败</h3>
+          <h3 class="error-title">{{ $t('process.failed') }}</h3>
           <p class="error-message">{{ appStore.message }}</p>
           <el-button type="primary" @click="goBackToTemplate">
             <el-icon><RefreshLeft /></el-icon>
-            重新尝试
+            {{ $t('common.reset') }}
           </el-button>
         </div>
       </el-card>
@@ -180,14 +182,14 @@
     <div v-else class="empty-state">
       <el-empty
         image="https://shadow.elemecdn.com/app/element/hamburger.9cf7b091-55e9-11e9-a976-7f4d0b07eef6.png"
-        description="请先完成前面的步骤"
+        :description="$t('steps.uploadImages')"
       />
     </div>
 
     <!-- 全屏预览对话框 -->
     <el-dialog
       v-model="previewDialogVisible"
-      title="结果预览"
+      :title="$t('results.view')"
       :width="'90%'"
       center
       destroy-on-close
@@ -195,7 +197,7 @@
       <div class="fullscreen-preview">
         <img
           :src="resultImageUrl"
-          alt="处理结果"
+          :alt="$t('results.processed')"
           class="fullscreen-image"
         />
       </div>
@@ -206,6 +208,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '../stores/app'
 import { startProcessing, getDownloadUrl } from '../api/upload'
 import {
@@ -221,6 +224,7 @@ import {
   RefreshLeft
 } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const emit = defineEmits(['confirm-replace'])
 const appStore = useAppStore()
 
@@ -239,6 +243,18 @@ const resultImageUrl = computed(() => {
   return ''
 })
 
+// 获取完成消息
+const getCompletionMessage = () => {
+  if (appStore.sessionStatus === 'completed') {
+    // 如果有检测到的头像数量信息，显示替换数量
+    if (appStore.detectedAvatars && appStore.detectedAvatars.length > 0) {
+      return t('process.avatarsReplaced', { count: appStore.detectedAvatars.length })
+    }
+    return t('process.completed')
+  }
+  return appStore.message || ''
+}
+
 // 方法
 const confirmReplacement = async () => {
   if (!appStore.detectedAvatars || appStore.detectedAvatars.length === 0) return
@@ -247,7 +263,7 @@ const confirmReplacement = async () => {
   // 设置处理状态
   appStore.sessionStatus = 'processing'
   appStore.progress = 0
-  appStore.message = '开始处理头像替换...'
+  appStore.message = t('process.replacing')
 
   try {
     // 自动选择所有检测到的头像进行替换
@@ -272,18 +288,18 @@ const confirmReplacement = async () => {
       // 触发确认替换事件，通知父组件更新页面状态
       emit('confirm-replace')
       
-      ElMessage.success('头像替换完成！')
+      ElMessage.success(t('process.completed') + '!')
     } else {
-      throw new Error(result.message || '处理失败')
+      throw new Error(result.message || t('errors.processingFailed'))
     }
   } catch (error) {
     appStore.sessionStatus = 'error'
-    appStore.message = '处理失败: ' + (error.response?.data?.detail || error.message)
+    appStore.message = t('errors.processingFailed')
     
     // 即使出错也要触发事件，让父组件知道处理完成了
     emit('confirm-replace')
     
-    ElMessage.error('头像替换失败: ' + (error.response?.data?.detail || error.message))
+    ElMessage.error(t('errors.processingFailed'))
   } finally {
     processing.value = false
   }
@@ -323,13 +339,13 @@ const downloadResult = () => {
       // 清理创建的URL对象
       URL.revokeObjectURL(link.href)
       
-      ElMessage.success('图片下载成功！')
+      ElMessage.success(t('common.success') + '!')
     } catch (error) {
-      console.error('下载失败:', error)
-      ElMessage.error('下载失败，请重试')
+      console.error('Download failed:', error)
+      ElMessage.error(t('common.error'))
     }
   } else {
-    ElMessage.warning('没有可下载的图片')
+    ElMessage.warning(t('errors.missingFiles'))
   }
 }
 

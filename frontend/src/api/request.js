@@ -21,8 +21,7 @@ api.interceptors.response.use(
     return response.data
   },
   error => {
-    const message = error.response?.data?.detail || error.message || '请求失败'
-    ElMessage.error(message)
+    // 不在这里显示错误消息，让组件层处理
     return Promise.reject(error)
   }
 )

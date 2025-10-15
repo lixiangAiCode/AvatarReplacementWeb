@@ -6,9 +6,13 @@
         <div class="header-content">
           <h1 class="title">
             <el-icon><Avatar /></el-icon>
-            聊天头像替换工具
+            {{ $t('header.title') }}
           </h1>
-          <div class="subtitle">基于模板匹配的智能头像批量替换</div>
+          <div class="subtitle">{{ $t('header.subtitle') }}</div>
+        </div>
+        <!-- 语言切换器 -->
+        <div class="header-actions">
+          <LanguageSwitcher />
         </div>
       </el-header>
 
@@ -20,8 +24,8 @@
       <!-- 底部信息 -->
       <el-footer class="app-footer">
         <div class="footer-content">
-          <span>© 2025 Avatar Replacement Online | </span>
-          <router-link to="/privacy-policy" class="privacy-link">Privacy Policy</router-link>
+          <span>{{ $t('footer.copyright') }} | </span>
+          <router-link to="/privacy-policy" class="privacy-link">{{ $t('footer.privacyPolicy') }}</router-link>
         </div>
       </el-footer>
     </el-container>
@@ -30,6 +34,7 @@
 
 <script setup>
 import { Avatar } from '@element-plus/icons-vue'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
 </script>
 
 <style scoped>
@@ -45,12 +50,19 @@ import { Avatar } from '@element-plus/icons-vue'
   color: white;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 20px;
 }
 
 .header-content {
   text-align: center;
-  width: 100%;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .title {
@@ -109,5 +121,32 @@ import { Avatar } from '@element-plus/icons-vue'
 :global(#app) {
   width: 100%;
   min-height: 100vh;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 15px;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+
+  .header-content {
+    order: 1;
+  }
+
+  .header-actions {
+    order: 2;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
 }
 </style>
